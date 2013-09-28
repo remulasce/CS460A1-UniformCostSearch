@@ -19,7 +19,7 @@ import java.util.TreeSet;
 
 public class Main {
 	//If its impossible to solve, just give up.
-	private static final int GIVEUP_COST = 1000;
+	private static final int GIVEUP_COST = 1000000;
 	
 	
 	public static void main(String[] args) {
@@ -28,7 +28,7 @@ public class Main {
 		
 		Path inPath = FileSystems.getDefault().getPath("input.txt");
 		Path outPath = FileSystems.getDefault().getPath("output.txt");
-		
+
 		try {
 			inputLines = Files.readAllLines(
 					inPath,
@@ -37,53 +37,91 @@ public class Main {
 			e.printStackTrace();
 			return;
 		}
-		
+
+		//Format is (Y, X)
 		int boardSize 	= Integer.parseInt(inputLines.get(0));
 		String line2	= inputLines.get(1);
-		int ax			= Integer.parseInt(line2.split(" ")[0]);
-		int ay			= Integer.parseInt(line2.split(" ")[1]);
+		int ay			= Integer.parseInt(line2.split(" ")[0]);
+		int ax			= Integer.parseInt(line2.split(" ")[1]);
 		String line3	= inputLines.get(2);
-		int bx			= Integer.parseInt(line3.split(" ")[0]);
-		int by			= Integer.parseInt(line3.split(" ")[1]);
-		
-		Main m = new Main();
-		Node end = m.findPath(boardSize, ax, ay, bx, by);
+		int by			= Integer.parseInt(line3.split(" ")[0]);
+		int bx			= Integer.parseInt(line3.split(" ")[1]);
 
-		if (end == null) {
-			System.out.println("Could not find a path");
-			return;
-		}
-		
-		//With the end node, we can follow the parent nodes to get the
-		//	path that got us here.
-		//It's in reverse order, though, so we have to reverse it before
-		// 	writing.
-		Deque<Node> out = new ArrayDeque<Node>();
-		
-		out.add(end);
-		Node cur = end;
-		while (cur.parent != null) {
-			//addFirst puts it in correct order, with root first0
-			out.addFirst(cur.parent);
-			cur = cur.parent;
-		}
-		
-		//Now with a reverse-sorted queue, we iterate backwards and 
-		// write to the out file 
-		for (Node n : out) {
+		Main m = new Main();
+		try {	//If we run out of memory, catch ourselves.
+			Node end = m.findPath(boardSize, ax, ay, bx, by);
+
+
+			if (end == null) {
+				System.out.println("Could not find a path");
+				writeFailure();
+				
+
+				return;
+			}
+
+			//With the end node, we can follow the parent nodes to get the
+			//	path that got us here.
+			//It's in reverse order, though, so we have to reverse it before
+			// 	writing.
+			Deque<Node> out = new ArrayDeque<Node>();
+
+			out.add(end);
+			Node cur = end;
+			while (cur.parent != null) {
+				//addFirst puts it in correct order, with root first0
+				out.addFirst(cur.parent);
+				cur = cur.parent;
+			}
+
+			//Now with a reverse-sorted queue, we iterate backwards and 
+			// write to the out file 
+			StringBuilder outString = new StringBuilder();
+			String nl = System.getProperty("line.separator");
+
+			//size-1 because the initial state doesn't count as a step
+			outString.append((out.size()-1)+nl);
+
+			for (Node n : out) {
+				System.out.println("A(y,x): "+n.y + " " + n.x);
+				System.out.println("B(y,x): "+n.ty + " " + n.tx);
+
+				outString.append(n.y + " "+ n.x+nl);
+			}
+
 			try {
-				Files.write(outPath, 
-						(n.x+" "+n.y+System.getProperty("line.separator")).getBytes(),
-						//Charset.defaultCharset(),
-						StandardOpenOption.APPEND);
+				Files.deleteIfExists(outPath);
+				Files.write(outPath, outString.toString().getBytes(), StandardOpenOption.CREATE);
 			} catch (IOException e) {
-				// TODO Auto-generated catch block
 				e.printStackTrace();
 			}
+
+			System.out.println("Done");
+
 		}
-		
+		catch (OutOfMemoryError e) {
+			System.out.println("Ran out of memory before solution was found");
+			writeFailure();
+		}
+		catch (Exception e) {
+			System.out.println("Could not find a solution");
+			writeFailure();
+		}
+
 	}
 
+	/** if something goes wrong or we can't find a solution, then just write "-1"
+	 * 
+	 */
+	private static void writeFailure() {
+		try {
+			Path outPath = FileSystems.getDefault().getPath("output.txt");
+			Files.deleteIfExists(outPath);
+			Files.write(outPath, "-1".getBytes(), StandardOpenOption.CREATE);
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+	}
 	
 	
 	
@@ -125,7 +163,7 @@ public class Main {
 		});
 		
 		
-		availableDecisions.add(cheapest);
+		//availableDecisions.add(cheapest);
 		
 		
 		//We keep going until the next decision would get us a win.
@@ -140,7 +178,7 @@ public class Main {
 			//Setup for the next decisions
 			cheapest = availableDecisions.first();
 			if (cheapest.cost > GIVEUP_COST) { 
-				System.out.println("Could not find a solution, gave up");
+				System.out.println("Could not find a solution, gave up after cost "+cheapest.cost);
 				return null;
 			}
 			availableDecisions.remove(cheapest);
@@ -165,7 +203,7 @@ public class Main {
 	 */
 	private void TakeDecision(Node next, int boardSize) {
 		//Move left
-		if (next.x > 1) {
+		if (next.x > 1 && next.ty > 1) {
 			//Note: the Node(node) constructor already has copied
 			// most of next's data, including setting next as parent.
 			Node westNode 	= new Node(next);
@@ -175,7 +213,7 @@ public class Main {
 			next.children	.add(westNode);
 		}
 		//Move right
-		if (next.x < boardSize) {
+		if (next.x < boardSize && next.ty < boardSize) {
 			Node eastNode	= new Node(next);
 			eastNode.cost 	= next.cost + 5;
 			eastNode.x		= next.x  + 1;
@@ -183,14 +221,15 @@ public class Main {
 			next.children	.add(eastNode);
 		}
 		//Move up
-		if (next.y > 1) {
+		if (next.y > 1 && next.tx < boardSize) {
 			Node northNode	= new Node(next);
 			northNode.cost	= next.cost + 3;
 			northNode.y		= next.y  - 1;
 			northNode.tx	= next.tx + 1;
 			next.children	.add(northNode);
 		}
-		if (next.y < boardSize) {
+		//Move down
+		if (next.y < boardSize && next.tx > 1) {
 			Node southNode	= new Node(next);
 			southNode.cost	= next.cost + 6;
 			southNode.y 	= next.y  + 1;
