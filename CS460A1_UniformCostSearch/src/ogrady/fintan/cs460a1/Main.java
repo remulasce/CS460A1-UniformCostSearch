@@ -1,16 +1,13 @@
 package ogrady.fintan.cs460a1;
 
 
+import java.io.BufferedReader;
+import java.io.FileReader;
 import java.io.IOException;
-import java.nio.charset.Charset;
-import java.nio.file.FileSystems;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.StandardOpenOption;
+import java.io.PrintWriter;
 import java.util.ArrayDeque;
 import java.util.Comparator;
 import java.util.Deque;
-import java.util.List;
 import java.util.TreeSet;
 
 
@@ -20,27 +17,28 @@ public class Main {
 	
 	
 	public static void main(String[] args) {
-
-		List<String> inputLines;
 		
-		Path inPath = FileSystems.getDefault().getPath("input.txt");
-		Path outPath = FileSystems.getDefault().getPath("output.txt");
-
+		String line1;
+		String line2;
+		String line3;
+		
 		try {
-			inputLines = Files.readAllLines(
-					inPath,
-					Charset.defaultCharset());
+			BufferedReader inputStream = new BufferedReader(
+					new FileReader("input.txt"));
+			line1 = inputStream.readLine();
+			line2 = inputStream.readLine();
+			line3 = inputStream.readLine();
+			inputStream.close();
+			
 		} catch (IOException e) {
 			e.printStackTrace();
 			return;
 		}
 
 		//Format is (Y, X)
-		int boardSize 	= Integer.parseInt(inputLines.get(0));
-		String line2	= inputLines.get(1);
+		int boardSize 	= Integer.parseInt(line1);
 		int ay			= Integer.parseInt(line2.split(" ")[0]);
 		int ax			= Integer.parseInt(line2.split(" ")[1]);
-		String line3	= inputLines.get(2);
 		int by			= Integer.parseInt(line3.split(" ")[0]);
 		int bx			= Integer.parseInt(line3.split(" ")[1]);
 
@@ -86,13 +84,10 @@ public class Main {
 				outString.append(n.y + " "+ n.x+nl);
 			}
 
-			try {
-				Files.deleteIfExists(outPath);
-				Files.write(outPath, outString.toString().getBytes(), StandardOpenOption.CREATE);
-			} catch (IOException e) {
-				e.printStackTrace();
-			}
-
+			PrintWriter writer = new PrintWriter("output.txt", "UTF-8");
+			writer.println(outString);
+			writer.close();
+			
 			System.out.println("Done");
 
 		}
@@ -112,9 +107,9 @@ public class Main {
 	 */
 	private static void writeFailure() {
 		try {
-			Path outPath = FileSystems.getDefault().getPath("output.txt");
-			Files.deleteIfExists(outPath);
-			Files.write(outPath, "-1".getBytes(), StandardOpenOption.CREATE);
+			PrintWriter writer = new PrintWriter("output.txt", "UTF-8");
+			writer.println("-1");
+			writer.close();
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
