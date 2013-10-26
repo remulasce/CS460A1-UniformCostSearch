@@ -13,7 +13,7 @@ import java.util.TreeSet;
 
 public class Main {
 	//If its impossible to solve, just give up.
-	private static final int GIVEUP_COST = 1000000;
+	private static final int GIVEUP_COST = 10000;
 	
 	
 	public static void main(String[] args) {
